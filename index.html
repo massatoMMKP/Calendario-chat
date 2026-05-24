@@ -6,41 +6,62 @@
 <title>Calendário Inteligente</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0f0f11;
-    --border: rgba(255,255,255,0.07);
-    --accent: #7c6eff;
-    --accent-bg: rgba(124,110,255,0.12);
-    --accent-border: rgba(124,110,255,0.3);
-    --text: #f0f0f2;
-    --text2: #8b8b99;
-    --success: #3fcf8e;
+    --bg: #0f0f11; --bg2: #17171a; --bg3: #1e1e22; --bg4: #26262c;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f2; --text2: #8b8b99; --text3: #5a5a6a;
+    --accent: #7c6eff; --accent2: #a99fff;
+    --accent-bg: rgba(124,110,255,0.12); --accent-border: rgba(124,110,255,0.3);
+    --success: #3fcf8e; --radius: 18px;
   }
-  html, body { height: 100%; background: var(--bg); font-family: 'DM Sans', sans-serif; }
-  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
-  header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px 24px; border-bottom: 1px solid var(--border);
-    flex-shrink: 0; background: var(--bg); z-index: 10;
-  }
-  .header-icon {
-    width: 34px; height: 34px; border-radius: 10px;
-    background: var(--accent-bg); border: 1px solid var(--accent-border);
-    display: flex; align-items: center; justify-content: center; font-size: 17px;
-  }
-  .header-info h1 { font-size: 14px; font-weight: 600; color: var(--text); }
-  .header-info p { font-size: 11.5px; color: var(--text2); display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+  html, body { height: 100%; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  header { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .header-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-bg); border: 1px solid var(--accent-border); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .header-info h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+  .header-info p { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 5px; }
   .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s ease infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-  .chat-frame {
-    flex: 1;
-    border: none;
-    width: 100%;
-    background: var(--bg);
-  }
+  .messages { flex: 1; overflow-y: auto; padding: 24px 0; scroll-behavior: smooth; }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 4px; }
+  .msg-wrapper { display: flex; padding: 4px 24px; gap: 12px; animation: fadeUp 0.25s ease forwards; opacity: 0; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .msg-wrapper.user { flex-direction: row-reverse; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; margin-top: 2px; }
+  .avatar.bot { background: var(--accent-bg); border: 1px solid var(--accent-border); font-size: 16px; }
+  .avatar.user { background: var(--accent); color: white; font-size: 12px; }
+  .bubble { max-width: 68%; padding: 12px 16px; border-radius: var(--radius); font-size: 14.5px; line-height: 1.65; word-break: break-word; }
+  .bubble.bot { background: var(--bg3); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .bubble.user { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+  .bubble p { margin: 4px 0; }
+  .bubble ul { padding-left: 18px; margin: 6px 0; }
+  .bubble ul li { margin: 3px 0; }
+  .time { font-size: 11px; color: var(--text3); margin-top: 4px; padding: 0 4px; }
+  .msg-wrapper.user .time { text-align: right; }
+  .typing-indicator { display: flex; align-items: center; gap: 5px; padding: 14px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); border-bottom-left-radius: 4px; width: fit-content; }
+  .typing-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); animation: bounce 1.2s ease infinite; }
+  .typing-dot:nth-child(2){animation-delay:0.2s} .typing-dot:nth-child(3){animation-delay:0.4s}
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0);background:var(--text3)} 30%{transform:translateY(-6px);background:var(--accent)} }
+  .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 48px 24px; gap: 16px; animation: fadeUp 0.4s ease forwards; opacity: 0; }
+  .welcome-icon { width: 64px; height: 64px; border-radius: 18px; background: var(--accent-bg); border: 1px solid var(--accent-border); display: flex; align-items: center; justify-content: center; font-size: 32px; }
+  .welcome h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
+  .welcome p { font-size: 14px; color: var(--text2); max-width: 320px; line-height: 1.6; }
+  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; max-width: 480px; }
+  .suggestion-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--bg2); color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .suggestion-btn:hover { border-color: var(--accent-border); color: var(--accent2); background: var(--accent-bg); }
+  .input-area { padding: 16px 24px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .input-box { display: flex; align-items: flex-end; gap: 10px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 10px 12px 10px 16px; transition: border-color 0.15s; }
+  .input-box:focus-within { border-color: var(--accent-border); box-shadow: 0 0 0 3px rgba(124,110,255,0.08); }
+  textarea { flex: 1; background: transparent; border: none; outline: none; resize: none; font-family: 'DM Sans', sans-serif; font-size: 14.5px; color: var(--text); line-height: 1.5; max-height: 120px; min-height: 24px; overflow-y: auto; }
+  textarea::placeholder { color: var(--text3); }
+  .send-btn { width: 34px; height: 34px; border-radius: 9px; border: none; background: var(--accent); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; opacity: 0.4; }
+  .send-btn.active { opacity: 1; }
+  .send-btn.active:hover { background: #6b5de8; transform: scale(1.04); }
+  .send-btn svg { width: 16px; height: 16px; }
+  .input-hint { font-size: 11.5px; color: var(--text3); text-align: center; margin-top: 10px; }
+  .error-bubble { background: rgba(226,75,74,0.1); border: 1px solid rgba(226,75,74,0.25); color: #f09595; padding: 10px 14px; border-radius: 10px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -51,10 +72,158 @@
     <p><span class="status-dot"></span> Online — Google Agenda conectado</p>
   </div>
 </header>
-<iframe
-  class="chat-frame"
-  src="https://massato.app.n8n.cloud/webhook/8f910a27-5bd1-4be3-9027-a93b713858a8/chat"
-  allow="microphone"
-></iframe>
+<div class="messages" id="messages">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">📅</div>
+    <h2>Olá! Sou seu assistente de agenda.</h2>
+    <p>Posso listar, criar, atualizar e deletar seus eventos do Google Agenda. Como posso ajudar hoje?</p>
+    <div class="suggestions">
+      <button class="suggestion-btn" onclick="sendSuggestion('Quais eventos tenho hoje?')">Eventos de hoje</button>
+      <button class="suggestion-btn" onclick="sendSuggestion('Quais eventos tenho amanhã?')">Eventos de amanhã</button>
+      <button class="suggestion-btn" onclick="sendSuggestion('Criar um novo evento')">Criar evento</button>
+      <button class="suggestion-btn" onclick="sendSuggestion('Mostrar eventos dessa semana')">Essa semana</button>
+    </div>
+  </div>
+</div>
+<div class="input-area">
+  <div class="input-box">
+    <textarea id="input" placeholder="Pergunte sobre sua agenda..." rows="1" onkeydown="handleKey(event)" oninput="handleInput()"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+  <p class="input-hint">Enter para enviar · Shift+Enter para nova linha</p>
+</div>
+<script>
+const N8N_URL = 'https://massato.app.n8n.cloud/webhook/8f910a27-5bd1-4be3-9027-a93b713858a8/chat';
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const welcomeEl = document.getElementById('welcome');
+let sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
+let isLoading = false;
+
+function handleInput() {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  sendBtn.classList.toggle('active', inputEl.value.trim().length > 0);
+}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function now() {
+  return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+function formatMessage(text) {
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+  const lines = text.split('\n');
+  let html = '', inList = false;
+  for (let line of lines) {
+    line = line.trim();
+    const listMatch = line.match(/^[\*\-•]\s+(.*)/);
+    const numMatch = line.match(/^\d+\.\s+(.*)/);
+    if (listMatch || numMatch) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += `<li>${(listMatch||numMatch)[1]}</li>`;
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      if (line) html += `<p>${line}</p>`;
+    }
+  }
+  if (inList) html += '</ul>';
+  return html || '<p>...</p>';
+}
+function appendMessage(role, text) {
+  welcomeEl.style.display = 'none';
+  const wrapper = document.createElement('div');
+  wrapper.className = `msg-wrapper ${role}`;
+  const avatar = document.createElement('div');
+  avatar.className = `avatar ${role}`;
+  avatar.textContent = role === 'bot' ? '📅' : 'EU';
+  const col = document.createElement('div');
+  const bubble = document.createElement('div');
+  bubble.className = `bubble ${role}`;
+  bubble.innerHTML = formatMessage(text);
+  const time = document.createElement('div');
+  time.className = 'time';
+  time.textContent = now();
+  col.appendChild(bubble); col.appendChild(time);
+  if (role === 'user') { wrapper.appendChild(col); wrapper.appendChild(avatar); }
+  else { wrapper.appendChild(avatar); wrapper.appendChild(col); }
+  messagesEl.appendChild(wrapper);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function showTyping() {
+  welcomeEl.style.display = 'none';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg-wrapper bot'; wrapper.id = 'typing';
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar bot'; avatar.textContent = '📅';
+  const ind = document.createElement('div');
+  ind.className = 'typing-indicator';
+  ind.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  wrapper.appendChild(avatar); wrapper.appendChild(ind);
+  messagesEl.appendChild(wrapper);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function removeTyping() {
+  const el = document.getElementById('typing'); if (el) el.remove();
+}
+function showError(msg) {
+  removeTyping();
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg-wrapper bot';
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar bot'; avatar.textContent = '📅';
+  const col = document.createElement('div');
+  const bubble = document.createElement('div');
+  bubble.className = 'error-bubble'; bubble.textContent = msg;
+  col.appendChild(bubble); wrapper.appendChild(avatar); wrapper.appendChild(col);
+  messagesEl.appendChild(wrapper);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function extractReply(data) {
+  if (typeof data === 'string') return data;
+  if (data.output) return data.output;
+  if (data.text) return data.text;
+  if (data.message) return data.message;
+  if (data.response) return data.response;
+  if (data.answer) return data.answer;
+  if (Array.isArray(data)) { for (const item of data) { const r = extractReply(item); if (r) return r; } }
+  return null;
+}
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text || isLoading) return;
+  isLoading = true;
+  inputEl.value = ''; inputEl.style.height = 'auto';
+  sendBtn.classList.remove('active');
+  appendMessage('user', text);
+  showTyping();
+  const body = JSON.stringify({ action: 'sendMessage', chatInput: text, sessionId });
+  const proxies = [
+    () => fetch(N8N_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+    () => fetch('https://corsproxy.io/?' + encodeURIComponent(N8N_URL), { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-requested-with': 'XMLHttpRequest' }, body }),
+    () => fetch('https://thingproxy.freeboard.io/fetch/' + N8N_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+    () => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(N8N_URL), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+  ];
+  let success = false;
+  for (const attempt of proxies) {
+    try {
+      const res = await attempt();
+      if (!res.ok) continue;
+      const data = await res.json();
+      const reply = extractReply(data);
+      if (reply) { removeTyping(); appendMessage('bot', reply); success = true; break; }
+    } catch (e) { console.warn('Falhou:', e.message); }
+  }
+  if (!success) showError('⚠️ Não foi possível conectar. Verifique se o workflow está ativo no n8n.');
+  isLoading = false;
+}
+function sendSuggestion(text) { inputEl.value = text; handleInput(); sendMessage(); }
+</script>
 </body>
 </html>

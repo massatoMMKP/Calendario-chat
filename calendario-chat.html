@@ -557,9 +557,14 @@ async function sendMessage() {
     const col = document.createElement('div');
     const bubble = document.createElement('div');
     bubble.className = 'error-bubble';
-    bubble.textContent = 'Não foi possível conectar ao servidor. Verifique se o workflow está ativo no n8n.';
-    col.appendChild(bubble);
 
+    if (err.message === 'Failed to fetch') {
+      bubble.textContent = '⚠️ Erro de conexão (CORS). No nó "Chat Trigger" do n8n, vá em Settings → Allowed Origins e adicione: https://massatommkp.github.io';
+    } else {
+      bubble.textContent = '⚠️ ' + err.message + ' — Verifique se o workflow está ativo no n8n.';
+    }
+
+    col.appendChild(bubble);
     wrapper.appendChild(avatar);
     wrapper.appendChild(col);
     messagesEl.appendChild(wrapper);

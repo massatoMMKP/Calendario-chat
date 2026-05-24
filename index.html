@@ -121,10 +121,13 @@ function now() {
 }
 
 function formatMessage(text) {
+  // Remove tool call artifacts like "(Listar Eventos)" lines
+  text = text.replace(/\([^)]*\)\s*\n?/g, '');
   text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
   const lines = text.split('\n');
   let html = '', inList = false;
   for (let line of lines) {
+    line = line.trim();
     const listMatch = line.match(/^[\*\-•]\s+(.*)/);
     const numMatch = line.match(/^\d+\.\s+(.*)/);
     if (listMatch || numMatch) {
@@ -132,11 +135,11 @@ function formatMessage(text) {
       html += `<li>${(listMatch||numMatch)[1]}</li>`;
     } else {
       if (inList) { html += '</ul>'; inList = false; }
-      if (line.trim()) html += `<p>${line}</p>`;
+      if (line) html += `<p>${line}</p>`;
     }
   }
   if (inList) html += '</ul>';
-  return html;
+  return html || '<p>...</p>';
 }
 
 function appendMessage(role, text) {
@@ -185,7 +188,6 @@ function removeTyping() {
 
 function showError(msg) {
   removeTyping();
-  welcomeEl.style.display = 'none';
   const wrapper = document.createElement('div');
   wrapper.className = 'msg-wrapper bot';
   const avatar = document.createElement('div');
@@ -202,62 +204,21 @@ function showError(msg) {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
-// Tenta múltiplos proxies em sequência
-async function fetchWithFallback(body) {
-  const proxies = [
-    // Direto primeiro (funciona se CORS estiver liberado)
-    async () => {
-      const r = await fetch(N8N_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    },
-    // Proxy 1: corsproxy.io
-    async () => {
-      const url = 'https://corsproxy.io/?' + encodeURIComponent(N8N_URL);
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-requested-with': 'XMLHttpRequest' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    },
-    // Proxy 2: api.allorigins.win
-    async () => {
-      const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(N8N_URL);
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    },
-    // Proxy 3: thingproxy
-    async () => {
-      const url = 'https://thingproxy.freeboard.io/fetch/' + N8N_URL;
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }
-  ];
-
-  for (let i = 0; i < proxies.length; i++) {
-    try {
-      return await proxies[i]();
-    } catch (e) {
-      console.warn(`Proxy ${i} falhou:`, e.message);
-      if (i === proxies.length - 1) throw e;
+function extractReply(data) {
+  // Try all possible response fields
+  if (typeof data === 'string') return data;
+  if (data.output) return data.output;
+  if (data.text) return data.text;
+  if (data.message) return data.message;
+  if (data.response) return data.response;
+  if (data.answer) return data.answer;
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const r = extractReply(item);
+      if (r) return r;
     }
   }
+  return null;
 }
 
 async function sendMessage() {
@@ -269,16 +230,42 @@ async function sendMessage() {
   sendBtn.classList.remove('active');
   appendMessage('user', text);
   showTyping();
-  try {
-    const data = await fetchWithFallback({ chatInput: text, sessionId });
-    removeTyping();
-    const reply = data.output || data.text || data.message || data.response ||
-      (Array.isArray(data) && (data[0]?.output || data[0]?.text)) ||
-      'Desculpe, não consegui processar sua solicitação.';
-    appendMessage('bot', reply);
-  } catch (err) {
-    showError('⚠️ Não foi possível conectar ao servidor após várias tentativas. Verifique se o workflow está ativo no n8n.');
+
+  const body = JSON.stringify({
+    action: 'sendMessage',
+    chatInput: text,
+    sessionId: sessionId
+  });
+
+  // Try direct first, then proxies
+  const attempts = [
+    () => fetch(N8N_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+    () => fetch('https://corsproxy.io/?' + encodeURIComponent(N8N_URL), { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-requested-with': 'XMLHttpRequest' }, body }),
+    () => fetch('https://thingproxy.freeboard.io/fetch/' + N8N_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+  ];
+
+  let success = false;
+  for (const attempt of attempts) {
+    try {
+      const res = await attempt();
+      if (!res.ok) continue;
+      const data = await res.json();
+      const reply = extractReply(data);
+      if (reply) {
+        removeTyping();
+        appendMessage('bot', reply);
+        success = true;
+        break;
+      }
+    } catch (e) {
+      console.warn('Tentativa falhou:', e.message);
+    }
   }
+
+  if (!success) {
+    showError('⚠️ Não foi possível conectar. Verifique se o workflow está ativo no n8n.');
+  }
+
   isLoading = false;
 }
 
